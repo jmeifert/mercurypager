@@ -6,7 +6,7 @@ SMTP_ADDR = ""
 SMTP_SERVER = "smtp.office365.com"
 SMTP_PORT = 587
 SMTP_PASSWORD = ""
-PAGER_SERVER_ADDRESS = "kd2wzz@outlook.com"
+PAGER_SERVER_ADDRESS = ""
 
 
 class SMTP:
