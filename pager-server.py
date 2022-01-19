@@ -48,6 +48,7 @@ class IMAP:
         # Open connection
         self.imap = imaplib.IMAP4_SSL(self.server, self.port)
         self.imap.login(self.useremail, self.password)
+        self.imap.select("INBOX")
         # Read the message
         res, msg = self.imap.fetch(str(index), "(RFC822)")
         for response in msg:
