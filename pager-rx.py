@@ -1,6 +1,7 @@
 from orion import NetworkInterface, FormatUtils
+from time import sleep
 
-print("Mercury Paging System Receiver")
+print("Mercury Pager Receiver")
 print("Enter address to listen on ([0-255].[0-255]). 0.0:ANY")
 octs = FormatUtils.parseOctets(input(":"))
 if(octs == [0,0]):

@@ -33,7 +33,7 @@ class SMTP:
 # Main loop
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 
-print("Mercury Paging System - Transmitter")
+print("Mercury Pager Transmitter")
 while(True):
     print("Enter address to page ([0-255].[0-255]):")
     addr = input(">")

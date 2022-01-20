@@ -85,7 +85,7 @@ class IMAP:
         return self.read(lm, remove)
 
 # Main loop
-print("Mercury Paging System - Server")
+print("Mercury Pager Server")
 im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 octs = FormatUtils.parseOctets(SOURCE_ADDRESS)
 ni = NetworkInterface(octs[0], octs[1])

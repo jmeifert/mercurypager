@@ -44,7 +44,7 @@ class FormatUtils:
 
     def trimBytes(data, val): # shorten bytes object to specified length
         if(len(data) > val):
-            return data[0:val-1]
+            return data[0:val]
         else:
             return data
 
