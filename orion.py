@@ -55,8 +55,8 @@ class RadioInterface:
         self.transmitter = afskmodem.digitalTransmitter(afskmodem.digitalModulationTypes.afsk500())
         self.integrity = 1
 
-    def rx(self): # Listen for and catch a transmission, report bit error rate and return data (bytes)
-        rd, te = self.receiver.rx()
+    def rx(self, timeout=-1): # Listen for and catch a transmission, report bit error rate and return data (bytes)
+        rd, te = self.receiver.rx(timeout)
         if(len(rd) > 4): # Only record integrity for transmissions longer than 4 bytes
             self.integrity = 1 - (te / len(rd))
         return rd
@@ -186,17 +186,17 @@ class NetworkInterface:
     def sendPacket(self, p = Packet()): # Send a Packet
         self.ri.tx(p.save())
     
-    def listenForPacket(self): # Listen for and return a Packet
+    def listenForPacket(self, timeout=-1): # Listen for and return a Packet
         while True:
-            rd = self.ri.rx()
+            rd = self.ri.rx(timeout)
             if(rd != b''):
                 p = Packet()
                 p.load(rd)
                 return p
     
-    def listenForAddressedPacket(self): # Listen for and return an (addressed) Packet
+    def listenForAddressedPacket(self, timeout=-1): # Listen for and return an (addressed) Packet
         while True:
-            rd = self.ri.rx()
+            rd = self.ri.rx(timeout)
             if(rd != b''):
                 p = Packet()
                 p.load(rd)
