@@ -1,20 +1,14 @@
 import afskmodem
 """
-x------------------------------------x
-|      ____  ___  ________  _  __    |
-|     / __ \/ _ \/  _/ __ \/ |/ /    |
-|    / /_/ / , _// // /_/ /    /     |
-|    \____/_/|_/___/\____/_/|_/      |
-|                                    |                           
-x------------------------------------x
-| Open Radio Inter-Operable Network  |
-| Protocol v2, Software v1.0         |
-| https://github.com/jvmeifert/orion |
-x------------------------------------x
+x--------------------------------------------x
+| ORION (Open Radio Inter-Operable Network)  |
+| Protocol version 2, Software v1.0          |
+| https://github.com/jvmeifert/orion         |
+x--------------------------------------------x
 """
 ################################################################################ General utilities
 class FormatUtils:
-    def parseOctets(data): # Parse a series of octets given in string form (xxx.xxx.xxx.xxx)
+    def parseOctets(data: str) -> list: # Parse a series of octets given in string form (xxx.xxx.xxx)
         octs = data.split(".")
         if(len(octs) < 2): # default to 0.0
             octs = ["0","0"]
@@ -31,7 +25,7 @@ class FormatUtils:
                 intOcts[i] = 0
         return intOcts
     
-    def intToByte(data): # int(0-255) to single byte
+    def intToByte(data: int) -> bytes: # int(0-255) to single byte
         if(data > 255):
             return b'\xff'
         elif(data < 0):
@@ -39,10 +33,10 @@ class FormatUtils:
         else:
             return bytes([data])
 
-    def byteToInt(data): # single byte to int(0-255)
+    def byteToInt(data: bytes) -> int: # single byte to int(0-255)
         return ord(data)
 
-    def trimBytes(data, val): # shorten bytes object to specified length
+    def trimBytes(data, val: bytes) -> bytes: # shorten bytes object to specified length
         if(len(data) > val):
             return data[0:val]
         else:
@@ -61,10 +55,10 @@ class RadioInterface:
             self.integrity = 1 - (te / len(rd))
         return rd
 
-    def tx(self, data): # Transmit raw data (bytes)
+    def tx(self, data: bytes): # Transmit raw data (bytes)
         self.transmitter.tx(data)
 
-    def getIntegrity(self): # Return integrity of the last received transmission
+    def getIntegrity(self) -> float: # Return integrity of the last received transmission
         return self.integrity
 
 # Packet structure and operations
@@ -80,62 +74,64 @@ class Packet:
         self.data = FormatUtils.trimBytes(data, 255)
         self.length = FormatUtils.intToByte(len(self.data))
         self.empty = False
-    def isEmpty(self):
+    
+    def isEmpty(self) -> bool:
         return self.empty
-    def setSrc0(self, data):
+    
+    def setSrc0(self, data: int):
         self.src0 = FormatUtils.intToByte(data)
         self.empty = False
     
-    def setSrc1(self, data):
+    def setSrc1(self, data: int):
         self.src1 = FormatUtils.intToByte(data)
         self.empty = False
     
-    def setDest0(self, data):
+    def setDest0(self, data: int):
         self.dest0 = FormatUtils.intToByte(data)
         self.empty = False
         
-    def setDest1(self, data):
+    def setDest1(self, data: int):
         self.dest1 = FormatUtils.intToByte(data)    
         self.empty = False
     
-    def setFlag(self, data):
+    def setFlag(self, data: int):
         self.flag = FormatUtils.intToByte(data)
         self.empty = False
     
-    def setFlagAttr(self, data):
+    def setFlagAttr(self, data: int):
         self.flagAttr = FormatUtils.intToByte(data)
         self.empty = False
     
-    def setData(self, data):
+    def setData(self, data: bytes):
         self.data = FormatUtils.trimBytes(data, 255)
         self.length = FormatUtils.intToByte(len(self.data))
         self.empty = False
     
-    def getSrc0(self):
+    def getSrc0(self) -> int:
         return FormatUtils.byteToInt(self.src0)
 
-    def getSrc1(self):
+    def getSrc1(self) -> int:
         return FormatUtils.byteToInt(self.src1)
 
-    def getDest0(self):
+    def getDest0(self) -> int:
         return FormatUtils.byteToInt(self.dest0)
 
-    def getDest1(self):
+    def getDest1(self) -> int:
         return FormatUtils.byteToInt(self.dest1)
 
-    def getAge(self):
+    def getAge(self) -> int:
         return FormatUtils.byteToInt(self.age)
 
-    def getFlag(self):
+    def getFlag(self) -> int:
         return FormatUtils.byteToInt(self.flag)
 
-    def getFlagAttr(self):
+    def getFlagAttr(self) -> int:
         return FormatUtils.byteToInt(self.flagAttr)
 
-    def getData(self):
+    def getData(self) -> bytes:
         return self.data
     
-    def getLength(self):
+    def getLength(self) -> int:
         return FormatUtils.byteToInt(self.length)
     
     def incAge(self): # Increment the age of the packet
@@ -146,10 +142,10 @@ class Packet:
         self.age = FormatUtils.intToByte(age)
         self.empty = False
         
-    def save(self): # Save the packet to bytes
+    def save(self) -> bytes: # Save the packet to bytes
         return self.src0 + self.src1 + self.dest0 + self.dest1 + self.age + self.flag + self.flagAttr + self.length + self.data
     
-    def load(self, bdata): # Load a packet from bytes
+    def load(self, bdata: bytes): # Load a packet from bytes
         try:
             self.empty = False
             self.src0 = bdata[0:1]
@@ -180,13 +176,13 @@ class NetworkInterface:
         self.src1 = src1
         self.ri = RadioInterface()
     
-    def makePacket(self, data, dest0, dest1, flag = 0, flagAttr = 0): # Return a Packet with the specified parameters
+    def makePacket(self, data: bytes, dest0: int, dest1: int, flag = 0, flagAttr = 0) -> Packet: # Return a Packet with the specified parameters
         return Packet(data, self.src0, self.src1, dest0, dest1, flag, flagAttr)
     
-    def sendPacket(self, p = Packet()): # Send a Packet
+    def sendPacket(self, p: Packet): # Send a Packet
         self.ri.tx(p.save())
     
-    def listenForPacket(self, timeout=-1): # Listen for and return a Packet
+    def listenForPacket(self, timeout=-1) -> Packet: # Listen for and return a Packet
         while True:
             rd = self.ri.rx(timeout)
             if(rd != b''):
@@ -194,7 +190,7 @@ class NetworkInterface:
                 p.load(rd)
                 return p
     
-    def listenForAddressedPacket(self, timeout=-1): # Listen for and return an (addressed) Packet
+    def listenForAddressedPacket(self, timeout=-1) -> Packet: # Listen for and return an (addressed) Packet
         while True:
             rd = self.ri.rx(timeout)
             if(rd != b''):
@@ -203,5 +199,5 @@ class NetworkInterface:
                 if(p.getDest0() == self.src0 and p.getDest1 == self.src1):
                     return p
 
-    def getIntegrity(self): # Get the integrity of the most recently received Packet
+    def getIntegrity(self) -> float: # Get the integrity of the most recently received Packet
         return self.ri.getIntegrity()
