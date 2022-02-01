@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 import email
 from time import sleep
 from orion import NetworkInterface, FormatUtils
+import os
 
 # IMAP login information
 IMAP_ADDR = ""
@@ -26,7 +27,7 @@ SOURCE_ADDRESS = "0.0.0.0"
 PAGE_COOLDOWN = 10
 
 # Whitelist for incoming pages
-IMAP_WHITELIST = []
+IMAP_WHITELIST = [""]
 
 # Subject for outgoing messages
 OUTGOING_MESSAGE_SUBJECT = "Mercury Pager - Page Sent."
@@ -34,10 +35,53 @@ OUTGOING_MESSAGE_SUBJECT = "Mercury Pager - Page Sent."
 # Header for outgoing messages
 OUTGOING_MESSAGE_HEADER = "Thank you for using Mercury Pager.\n" # Requires newline unless empty.
 
-# Utils
+####################################################################### LOGGING
 def getDateAndTime(): # Long date and time
         now = datetime.now()
         return now.strftime('%Y-%m-%d %H:%M:%S')
+
+# Where to generate logfile
+LOG_PATH = "mercury.log"
+#
+# Logging level (0: INFO, 1: WARN, 2: ERROR, 3: FATAL, 4: NONE)
+LOG_LEVEL = 0
+#
+# Should the log be silent? (print to file but not to console)
+LOG_SILENT = False
+#
+# How the log identifies which module is logging.
+LOG_PREFIX = "(MERCURY)"
+
+# Instantiate log
+try:
+    os.remove(LOG_PATH)
+except:
+    if(not LOG_SILENT):
+        print(getDateAndTime() + " [INFO]  " + LOG_PREFIX + " No previous log file exists. Creating one now.")
+
+with open(LOG_PATH, "w") as f:
+    f.write(getDateAndTime() + " [INFO]  " + LOG_PREFIX + " Logging initialized.\n")
+    if(not LOG_SILENT):
+        print(getDateAndTime() + " [INFO]  " + LOG_PREFIX + " Logging initialized.")
+
+
+def log(level: int, data: str):
+    if(level >= LOG_LEVEL):
+        output = getDateAndTime()
+        if(level == 0):
+            output += " [INFO]  "
+        elif(level == 1):
+            output += " [WARN]  "
+        elif(level == 2):
+            output += " [ERROR] "
+        else:
+            output += " [FATAL] "
+        output += LOG_PREFIX + " "
+        output += data
+        with open(LOG_PATH, "a") as f:
+            f.write(output + "\n")
+        if(not LOG_SILENT):
+            print(output)
 
 class IMAP:
     def __init__(self, useremail, password, server, port):
@@ -122,7 +166,6 @@ print("Mercury Pager Server")
 
 im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
-
 ni = NetworkInterface(SOURCE_ADDRESS, 65535)
 
 while(True):
@@ -131,13 +174,17 @@ while(True):
             # Fetch mail
             From, Subject, Body = im.readLast(remove=True)
             if(From in IMAP_WHITELIST):
-                print(getDateAndTime() + ": Message received from " + From + ".")
+                log(0, "Message received from " + From + ".")
                 # Assemble packet
-                sp = ni.makePacket(Body.encode("ascii", "ignore"), Subject, 65535)
+                if(FormatUtils.isValidOctets(Subject)):
+                    dest = Subject
+                else:
+                    dest = "255.255.255.255"
+                sp = ni.makePacket(Body.encode("ascii", "ignore"), dest, 65535)
                 # Send packet
                 ni.sendPacket(sp)
                 # Notify sender that packet was sent
-                print(getDateAndTime() + ": Sent page:\n" + Body + "\nto address " + sp.getDest() + ".")
+                log(0, "Sent page:\n" + Body + "\nto address " + sp.getDest() + ".")
                 sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.getDest() + " was successfully sent on " + getDateAndTime() + "."))
                 # Cool down
                 sleep(PAGE_COOLDOWN)
