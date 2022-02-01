@@ -92,6 +92,30 @@ class FormatUtils:
             else:
                 o += str(data[i]) + "."
         return o
+    
+    def isValidOctets(data: str):
+        octs = data.split(".")
+        if(len(octs) == 4):
+            try:
+                for i in octs:
+                    if(int(i) > 255 or int(i) < 0):
+                        return False
+                return True
+            except:
+                return False
+        return False
+    
+    def isValidPrettyAddress(data: str):
+        if(":" in data):
+            a = data.split(":")
+            if(FormatUtils.isValidOctets(a[0])):
+                try:
+                    p = int(a[1])
+                    if(p < 65535 and p > 0):
+                        return True
+                except:
+                    return False
+        return False
 
     def intToBytes(data: int, n: int) -> bytes: # int to n bytes
         if(data > (256 ** n) - 1):
