@@ -28,10 +28,10 @@ while(True):
         length = p.getLength()
         data = p.getData()
         integrity = round(ni.getIntegrity() * 100, 4)
-        print("Page received (Integrity: " + str(integrity) + "%)")
+        print("\nPage received (Integrity: " + str(integrity) + "%)")
         if(integrity < 50):
             print("WARNING: Low page integrity. Uncorrectable errors may be present.")
         print("SRC: " + source + ":" + str(sourcePort) + " DEST: " + dest + ":" + str(destPort) + " FLAG: " + str(flag) + " AGE: " + str(age) + " LEN: " + str(length))
-        print("DATA:")
+        print("\nDATA:")
         print(data.decode("ascii", "ignore"))
         print("\nDone. (CTRL-C to exit)")

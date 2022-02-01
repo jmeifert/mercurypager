@@ -1,46 +1,97 @@
 import afskmodem
+import os
+from datetime import datetime
 """
 x--------------------------------------------x
 | ORION (Open Radio Inter-Operable Network)  |
 | https://github.com/jvmeifert/orion         |
 x--------------------------------------------x
 """
+################################################################################ LOGGING
+
+def getDateAndTime(): # Long date and time
+        now = datetime.now()
+        return now.strftime('%Y-%m-%d %H:%M:%S')
+
+# Where to generate logfile
+LOG_PATH = "orion.log"
+#
+# Logging level (0: INFO, 1: WARN, 2: ERROR, 3: FATAL, 4: NONE)
+LOG_LEVEL = 0
+#
+# Should the log be silent? (print to file but not to console)
+LOG_SILENT = False
+#
+# How the log identifies which module is logging.
+LOG_PREFIX = "(ORION)"
+
+# Instantiate log
+try:
+    os.remove(LOG_PATH)
+except:
+    if(not LOG_SILENT):
+        print(getDateAndTime() + " [INFO]  " + LOG_PREFIX + " No previous log file exists. Creating one now.")
+
+with open(LOG_PATH, "w") as f:
+    f.write(getDateAndTime() + " [INFO]  " + LOG_PREFIX + " Logging initialized.\n")
+    if(not LOG_SILENT):
+        print(getDateAndTime() + " [INFO]  " + LOG_PREFIX + "Logging initialized.")
+
+
+def log(level: int, data: str):
+    if(level >= LOG_LEVEL):
+        output = getDateAndTime()
+        if(level == 0):
+            output += " [INFO]  "
+        elif(level == 1):
+            output += " [WARN]  "
+        elif(level == 2):
+            output += " [ERROR] "
+        else:
+            output += " [FATAL] "
+        output += LOG_PREFIX + " "
+        output += data
+        with open(LOG_PATH, "a") as f:
+            f.write(output + "\n")
+        if(not LOG_SILENT):
+            print(output)
+
 ################################################################################ General utilities
 class FormatUtils:
     # Parse a series of octets given in string form and of a given length (xxx.xxx.xxx.xxx)
-    def parseOctets(data: str, n = 4) -> list: 
+    def parseOctets(data: str) -> list: 
         octs = data.split(".")
-        if(len(octs) < n): # default to 0.*n if undersize
-            octs = ["0"] * n
-        if(len(octs) > n): # ignore extra octets
-            octs = octs[0:n]
-    
-        intOcts = []
+        p = []
         for i in octs:
-            try:
-                intOcts.append(int(i))
-            except:
-                intOcts.append(0)
-        
-        for i in range(len(intOcts)):
-            if(intOcts[i] > 255):
-                intOcts[i] = 255
-            if(intOcts[i] < 0):
-                intOcts[i] = 0
-        
-        return intOcts
+            p.append(int(i))
+        return p
     
+    # Convert a list of ints into nicely formatted string octets (xxx.xxx.xxx.xxx)
     def makeOctets(data: list) -> str:
         p = ""
         for i in data:
             mi = i
-            if(mi > 255):
-                mi = 255
-            if(mi < 0):
-                mi = 0
             p += str(mi) + "."
         return p.rstrip(".")
-        
+    
+    # Parse a "pretty" (xxx.xxx.xxx.xxx:0-65535) address and return its values ["xxx.xxx.xxx.xxx", port]
+    def parsePrettyAddress(data: str) -> list:
+        p = data.split(":")
+        a = FormatUtils.parseOctets(p[0])
+        b = int(p[1])
+        return a.append(b)
+    
+    # Make a "pretty" (xxx.xxx.xxx.xxx:0-65535) address from its values [oct0, oct1, oct2, oct3, port]
+    def makePrettyAddress(data: list) -> str:
+        o = ""
+        for i in range(5):
+            if(i == 4):
+                o += ":" + str(data[i])
+            elif(i == 3):
+                o += str(data[i])
+            else:
+                o += str(data[i]) + "."
+        return o
 
     def intToBytes(data: int, n: int) -> bytes: # int to n bytes
         if(data > (256 ** n) - 1):
@@ -61,13 +112,13 @@ class FormatUtils:
 ################################################################################ Wrapper class for digital radio interface
 class RadioInterface: 
     def __init__(self):
-        self.receiver = afskmodem.digitalReceiver(afskmodem.digitalModulationTypes.afsk1200())
+        self.receiver = afskmodem.digitalReceiver(afskmodem.digitalModulationTypes.afsk1200()) # see AFSKmodem README.md for more info on these
         self.transmitter = afskmodem.digitalTransmitter(afskmodem.digitalModulationTypes.afsk1200())
         self.integrity = 1
 
     def rx(self, timeout=-1): # Listen for and catch a transmission, report bit error rate and return data (bytes)
         rd, te = self.receiver.rx(timeout)
-        if(len(rd) > 4): # Only record integrity for transmissions longer than 4 bytes
+        if(len(rd) > 12): # Only record integrity for transmissions longer than 12 bytes (header is 16 bytes)
             self.integrity = 1 - (te / len(rd))
         return rd
 
@@ -109,7 +160,7 @@ class Packet:
     
     def isEmpty(self) -> bool:
         return self.empty
-    
+
     def setSource(self, data: str):
         self.source = FormatUtils.parseOctets(data)
         self.src0 = FormatUtils.intToBytes(self.source[0], 1)
@@ -244,29 +295,34 @@ class NetworkInterface:
         self.address = address
         self.port = port
         self.ri = RadioInterface()
+        log(0, "Instantiated a NetworkInterface on address " + self.address + ", port " + str(self.port) + ".")
     
     def makePacket(self, data: bytes, dest: str, destPort: int, flag = 0) -> Packet: # Return a Packet with the specified parameters
         return Packet(data, self.address, dest, self.port, destPort, flag)
     
     def sendPacket(self, p: Packet): # Send a Packet
+        log(0, "Sending a Packet addressed to " + p.getDest() + ":" + str(p.getDestPort()) + ".")
         self.ri.tx(p.save())
     
     def listenForAnyPacket(self, timeout=-1) -> Packet: # Listen for and return any Packet
+        log(0, "Listening for any Packet...")
         while True:
             rd = self.ri.rx(timeout)
             if(rd != b''):
                 p = Packet()
                 p.load(rd)
+                log(0, "Caught a Packet addressed to " + p.getDest() + ":" + str(p.getDestPort()) + ".")
                 return p
     
     def listenForPacket(self, timeout=-1) -> Packet: # Listen for and return a Packet addressed to this interface
+        log(0, "Listening for any Packet addressed to this NetworkInterface (" + self.address + ":" + str(self.port) + ")...")
         while True:
             rd = self.ri.rx(timeout)
             if(rd != b''):
                 p = Packet()
                 p.load(rd)
                 if(p.getDest() == self.address and int(p.getDestPort()) == int(self.port)):
-
+                    log(0, "Received a Packet addressed to this NetworkInterface (" + self.address + ":" + str(self.port) + ").")
                     return p
 
     def getIntegrity(self) -> float: # Get the integrity of the most recently received Packet
