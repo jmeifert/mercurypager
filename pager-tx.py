@@ -35,7 +35,7 @@ sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 
 print("Mercury Pager Transmitter")
 while(True):
-    print("Enter address to page ([0-255].[0-255]):")
+    print("Enter address to page (xxx.xxx.xxx.xxx):")
     addr = input(">")
     print("Enter body text (ASCII):")
     body = input(">")

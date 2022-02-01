@@ -19,8 +19,8 @@ SMTP_SERVER = "smtp.office365.com"
 SMTP_PORT = 587
 SMTP_PASSWORD = ""
 
-# Packet radio address of paging server ("xxx.xxx", default "0.0")
-SOURCE_ADDRESS = "0.0"
+# Packet radio address of paging server ("xxx.xxx.xxx.xxx", default "0.0.0.0")
+SOURCE_ADDRESS = "0.0.0.0"
 
 # Page cooldown in seconds
 PAGE_COOLDOWN = 10
@@ -122,8 +122,8 @@ print("Mercury Pager Server")
 
 im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
-octs = FormatUtils.parseOctets(SOURCE_ADDRESS)
-ni = NetworkInterface(octs[0], octs[1])
+
+ni = NetworkInterface(SOURCE_ADDRESS, 65535)
 
 while(True):
     try:
@@ -132,17 +132,16 @@ while(True):
             From, Subject, Body = im.readLast(remove=True)
             if(From in IMAP_WHITELIST):
                 print(getDateAndTime() + ": Message received from " + From + ".")
-                # Read address from subject
-                destAddr = FormatUtils.parseOctets(Subject)
                 # Assemble packet
-                sp = ni.makePacket(Body.encode("ascii", "ignore"), destAddr[0], destAddr[1])
+                sp = ni.makePacket(Body.encode("ascii", "ignore"), Subject, 65535)
                 # Send packet
                 ni.sendPacket(sp)
-                print(getDateAndTime() + ": Sent page:\n" + Body + "\nto address " + str(destAddr[0]) + "." + str(destAddr[1]) + ".")
-                sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + str(destAddr[0]) + "." + str(destAddr[1]) + " was successfully sent on " + getDateAndTime() + "."))
+                # Notify sender that packet was sent
+                print(getDateAndTime() + ": Sent page:\n" + Body + "\nto address " + sp.getDest() + ".")
+                sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.getDest() + " was successfully sent on " + getDateAndTime() + "."))
                 # Cool down
                 sleep(PAGE_COOLDOWN)
 
     except Exception as e:
         print("Exception encountered: " + str(e) + ". Retrying...")
-        sleep(1)
+        sleep(PAGE_COOLDOWN)

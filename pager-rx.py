@@ -1,39 +1,37 @@
-from orion import NetworkInterface, FormatUtils
-from time import sleep
+from orion import NetworkInterface
 
 print("Mercury Pager Receiver")
-print("Enter address to listen on ([0-255].[0-255]). 0.0:ANY")
-octs = FormatUtils.parseOctets(input(":"))
-if(octs == [0,0]):
+print("Enter address to listen on (xxx.xxx.xxx.xxx). BLANK:ANY")
+source = input(":")
+if(source == ""):
     filterListener = False
-    ni = NetworkInterface()
+    ni = NetworkInterface("0.0.0.0", 0)
 else:
     filterListener = True
-    ni = NetworkInterface(octs[0], octs[1])
+    ni = NetworkInterface(source, 65535)
 
 while(True):
-    try:
-        print("Waiting for page...\n")
-        if(filterListener):
-            p = ni.listenForAddressedPacket()
-        else:
-            p = ni.listenForPacket()
-        if(p.isEmpty()):
-            print("Corrupt page dropped.")
-        else:
-            src0 = p.getSrc0()
-            src1 = p.getSrc1()
-            dest0 = p.getDest0()
-            dest1 = p.getDest1()
-            length = p.getLength()
-            data = p.getData()
-            integrity = round(ni.getIntegrity() * 100, 4)
-            print("Page received (Integrity: " + str(integrity) + "%)")
-            if(integrity < 50):
-                print("WARNING: Low page integrity. Uncorrectable errors may be present.")
-            print("SRC: " + str(src0) + "." + str(src1) + ", DEST: " + str(dest0) + "." + str(dest1) + ", LEN: " + str(length) + "\n")
-            print(data.decode("ascii", "ignore"))
-            print("\nDone. (CTRL-C to exit)")
-    except Exception as e:
-        print("Exception encountered: " + str(e))
-        sleep(1)
+    print("Waiting for page...\n")
+    if(filterListener):
+        p = ni.listenForPacket()
+    else:
+        p = ni.listenForAnyPacket()
+    if(p.isEmpty()):
+        print("Corrupt page dropped.")
+    else:
+        source = p.getSource()
+        dest = p.getDest()
+        sourcePort = p.getSourcePort()
+        destPort = p.getDestPort()
+        age = p.getAge()
+        flag = p.getFlag()
+        length = p.getLength()
+        data = p.getData()
+        integrity = round(ni.getIntegrity() * 100, 4)
+        print("Page received (Integrity: " + str(integrity) + "%)")
+        if(integrity < 50):
+            print("WARNING: Low page integrity. Uncorrectable errors may be present.")
+        print("SRC: " + source + ":" + str(sourcePort) + " DEST: " + dest + ":" + str(destPort) + " FLAG: " + str(flag) + " AGE: " + str(age) + " LEN: " + str(length))
+        print("DATA:")
+        print(data.decode("ascii", "ignore"))
+        print("\nDone. (CTRL-C to exit)")
