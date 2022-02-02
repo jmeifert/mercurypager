@@ -183,7 +183,8 @@ while(True):
                 ni.sendPacket(sp)
                 # Notify sender that packet was sent
                 log(0, "Sent page:\n" + Body + "\nto address " + sp.getDest() + ".")
-                sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.getDest() + " was successfully sent on " + getDateAndTime() + "."))
+                if(From != IMAP_ADDR and From != SMTP_ADDR): # don't send messages to self
+                    sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.getDest() + " was successfully sent on " + getDateAndTime() + "."))
                 # Cool down
                 sleep(PAGE_COOLDOWN)
 
