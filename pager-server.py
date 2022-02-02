@@ -21,7 +21,7 @@ SMTP_PORT = 587
 SMTP_PASSWORD = ""
 
 # Packet radio address of paging server ("xxx.xxx.xxx.xxx", default "0.0.0.0")
-SOURCE_ADDRESS = "0.0.0.0"
+SOURCE_ADDRESS = "255.255.255.255"
 
 # Page cooldown in seconds
 PAGE_COOLDOWN = 10
@@ -162,12 +162,10 @@ class SMTP:
         self.smtp.quit()
 
 # Main loop
-print("Mercury Pager Server")
-
+log(0, "Welcome to Mercury Pager Server")
 im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 ni = NetworkInterface(SOURCE_ADDRESS, 65535)
-
 while(True):
     try:
         if(im.getMessageCount() > 0):
