@@ -1,6 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
-
+from orion import FormatUtils
 # SMTP login information
 SMTP_ADDR = ""
 SMTP_SERVER = "smtp.office365.com"
@@ -35,8 +35,13 @@ sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 
 print("Mercury Pager Transmitter")
 while(True):
-    print("Enter address to page (xxx.xxx.xxx.xxx):")
-    addr = input(">")
+    while(True):
+        print("Enter address to page (xxx.xxx.xxx.xxx):")
+        addr = input(">")
+        if(FormatUtils.isValidOctets(addr)):
+            break
+        else:
+            print("Address " + addr + " is invalid.")
     print("Enter body text (ASCII):")
     body = input(">")
     sm.send(PAGER_SERVER_ADDRESS, addr, body)
