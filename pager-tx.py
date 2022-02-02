@@ -45,4 +45,4 @@ while(True):
     print("Enter body text (ASCII):")
     body = input(">")
     sm.send(PAGER_SERVER_ADDRESS, addr, body)
-    print("Page sent.\n")
+    print("Page sent. Press CTRL-C to exit.\n")

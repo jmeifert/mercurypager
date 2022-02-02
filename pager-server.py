@@ -20,7 +20,7 @@ SMTP_SERVER = "smtp.office365.com"
 SMTP_PORT = 587
 SMTP_PASSWORD = ""
 
-# Packet radio address of paging server ("xxx.xxx.xxx.xxx", default "0.0.0.0")
+# Packet radio address of paging server ("xxx.xxx.xxx.xxx", default "255.255.255.255")
 SOURCE_ADDRESS = "255.255.255.255"
 
 # Page cooldown in seconds
