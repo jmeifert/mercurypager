@@ -23,11 +23,14 @@ SMTP_PASSWORD = ""
 # Packet radio address of paging server ("xxx.xxx.xxx.xxx", default "255.255.255.255")
 SOURCE_ADDRESS = "255.255.255.255"
 
-# Page cooldown in seconds
-PAGE_COOLDOWN = 10
-
 # Whitelist for incoming pages
 IMAP_WHITELIST = [""]
+
+# Page cooldown in seconds (Default 10, going lower may overheat your radio)
+PAGE_COOLDOWN = 10
+
+# Maximum page body length in bytes (Default 1024, going higher may overheat your radio)
+MAX_PAGE_LENGTH = 1024
 
 # Subject for outgoing messages
 OUTGOING_MESSAGE_SUBJECT = "Mercury Pager - Page Sent."
@@ -185,7 +188,7 @@ while(True):
                     dest = Subject
                 else:
                     dest = "255.255.255.255"
-                sp = ni.makePacket(Body.encode("ascii", "ignore"), dest, 65535)
+                sp = ni.makePacket(FormatUtils.trimBytes(Body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
                 # Send packet
                 ni.sendPacket(sp)
                 # Notify sender that packet was sent
