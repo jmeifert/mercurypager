@@ -143,8 +143,8 @@ class FormatUtils:
 ################################################################################ Wrapper class for digital radio interface
 class RadioInterface: 
     def __init__(self):
-        self.receiver = afskmodem.digitalReceiver(afskmodem.digitalModulationTypes.afsk1500()) # see AFSKmodem README.md for more info on these
-        self.transmitter = afskmodem.digitalTransmitter(afskmodem.digitalModulationTypes.afsk1500())
+        self.receiver = afskmodem.digitalReceiver(afskmodem.digitalModulationTypes.afsk1200()) # see AFSKmodem README.md for more info on these
+        self.transmitter = afskmodem.digitalTransmitter(afskmodem.digitalModulationTypes.afsk1200())
         self.integrity = 1
 
     def rx(self, timeout=-1): # Listen for and catch a transmission, report bit error rate and return data (bytes)
@@ -161,7 +161,7 @@ class RadioInterface:
 
 # Packet structure and operations
 class Packet:
-    def __init__(self, data=b'', source = "255.255.255.255", dest = "255.255.255.255", sPort = 65535, dPort = 65535, flag = 0):
+    def __init__(self, data=b'', source = "0.0.0.0", dest = "0.0.0.0", sPort = 0, dPort = 0, flag = 0):
         self.source = FormatUtils.parseOctets(source)
         self.dest = FormatUtils.parseOctets(dest)
         # Source address
