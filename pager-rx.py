@@ -1,3 +1,4 @@
+from orion import getDateAndTime
 from orion import NetworkInterface
 
 print("Mercury Pager Receiver")
@@ -5,7 +6,7 @@ print("Enter address to listen on (xxx.xxx.xxx.xxx). BLANK:ANY")
 source = input(":")
 if(source == ""):
     filterListener = False
-    ni = NetworkInterface("0.0.0.0", 0)
+    ni = NetworkInterface("255.255.255.255", 65535)
 else:
     filterListener = True
     ni = NetworkInterface(source, 65535)
@@ -28,10 +29,9 @@ while(True):
         length = p.getLength()
         data = p.getData()
         integrity = round(ni.getIntegrity() * 100, 4)
-        print("\nPage received (Integrity: " + str(integrity) + "%)")
+        print("\n(" + getDateAndTime() + ") Page received (Integrity: " + str(integrity) + "%)")
         if(integrity < 50):
             print("WARNING: Low page integrity. Uncorrectable errors may be present.")
-        print("SRC: " + source + ":" + str(sourcePort) + " DEST: " + dest + ":" + str(destPort) + " FLAG: " + str(flag) + " AGE: " + str(age) + " LEN: " + str(length))
-        print("\nDATA:")
+        print(source + ":" + str(sourcePort) + " -> " + dest + ":" + str(destPort) + " (A: " + str(age) + ", F: " + str(flag) + ", L: " + str(length) + "):\n")
         print(data.decode("ascii", "ignore"))
         print("\nDone. (CTRL-C to exit)")
