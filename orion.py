@@ -13,8 +13,8 @@ def getDateAndTime(): # Long date and time
         now = datetime.now()
         return now.strftime('%Y-%m-%d %H:%M:%S')
 
-# Logging level (0: INFO (recommended), 1: WARN, 2: ERROR, 3: FATAL, 4: NONE)
-LOG_LEVEL = 0
+# Logging level (0: INFO, 1: WARN (recommended), 2: ERROR, 3: FATAL, 4: NONE)
+LOG_LEVEL = 1
 #
 # Should the log output to the console?
 LOG_TO_CONSOLE = True
@@ -77,9 +77,9 @@ class FormatUtils:
     # Parse a "pretty" (xxx.xxx.xxx.xxx:0-65535) address and return its values ["xxx.xxx.xxx.xxx", port]
     def parsePrettyAddress(data: str) -> list:
         p = data.split(":")
-        a = FormatUtils.parseOctets(p[0])
+        a = str(p[0])
         b = int(p[1])
-        return a.append(b)
+        return a, b
     
     # Make a "pretty" (xxx.xxx.xxx.xxx:0-65535) address from its values [oct0, oct1, oct2, oct3, port]
     def makePrettyAddress(data: list) -> str:
@@ -111,7 +111,7 @@ class FormatUtils:
             if(FormatUtils.isValidOctets(a[0])):
                 try:
                     p = int(a[1])
-                    if(p < 65535 and p > 0):
+                    if(p < 65536 and p > 0):
                         return True
                 except:
                     return False
@@ -348,6 +348,8 @@ class NetworkInterface:
                 if(p.getDest() == self.address and int(p.getDestPort()) == int(self.port)):
                     log(0, "Received a Packet addressed to this NetworkInterface (" + self.address + ":" + str(self.port) + ").")
                     return p
+            else:
+                return None
 
     def getIntegrity(self) -> float: # Get the integrity of the most recently received Packet
         return self.ri.getIntegrity()
