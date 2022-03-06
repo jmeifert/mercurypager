@@ -5,7 +5,7 @@ from email.header import decode_header
 from email.mime.text import MIMEText
 import email
 from time import sleep
-from orion import NetworkInterface, FormatUtils
+from adrcfs import NetworkInterface, FormatUtils
 import os
 
 # IMAP login information
@@ -56,28 +56,28 @@ LOG_TO_FILE = False
 LOG_PATH = "mercury.log"
 #
 # How the log identifies which module is logging.
-LOG_PREFIX = "(MERCURY)"
+LOG_PREFIX = "(Mercury)"
 
-# Instantiate log file if needed
+# Initialize log file if needed
 if(LOG_TO_FILE):
     try:
         os.remove(LOG_PATH)
     except:
         pass
     with open(LOG_PATH, "w") as f:
-        f.write(getDateAndTime() + " [INIT]  " + LOG_PREFIX + " Logging initialized.\n")
+        f.write(getDateAndTime() + " [  OK  ] " + LOG_PREFIX + " Logging initialized.\n")
 
 def log(level: int, data: str):
     if(level >= LOG_LEVEL):
         output = getDateAndTime()
         if(level == 0):
-            output += " [INFO]  "
+            output += " [  OK  ] "
         elif(level == 1):
-            output += " [WARN]  "
+            output += " [ WARN ] "
         elif(level == 2):
-            output += " [ERROR] "
+            output += " [ CAUT ] "
         else:
-            output += " [FATAL] "
+            output += " [[ ERROR ]] "
         output += LOG_PREFIX + " "
         output += data
         if(LOG_TO_FILE):
@@ -177,7 +177,7 @@ while(True):
             if(From in IMAP_WHITELIST):
                 log(0, "Message received from " + From + ".")
                 # Assemble packet
-                if(FormatUtils.isValidOctets(Subject)):
+                if(FormatUtils.isValidAddress(Subject)):
                     dest = Subject
                 else:
                     dest = "255.255.255.255"

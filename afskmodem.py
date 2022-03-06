@@ -5,7 +5,6 @@ x---------------------------------------x
 x---------------------------------------x
 """
 from datetime import datetime
-import math
 import wave
 import struct
 import pyaudio
@@ -69,28 +68,28 @@ LOG_TO_FILE = False
 LOG_PATH = "afskmodem.log"
 #
 # How the log identifies which module is logging.
-LOG_PREFIX = "(AFSKMODEM)"
+LOG_PREFIX = "(AFSKmodem)"
 
-# Instantiate log file if needed
+# Initialize log file if needed
 if(LOG_TO_FILE):
     try:
         os.remove(LOG_PATH)
     except:
         pass
     with open(LOG_PATH, "w") as f:
-        f.write(getDateAndTime() + " [INIT]  " + LOG_PREFIX + " Logging initialized.\n")
+        f.write(getDateAndTime() + " [  OK  ] " + LOG_PREFIX + " Logging initialized.\n")
 
 def log(level: int, data: str):
     if(level >= LOG_LEVEL):
         output = getDateAndTime()
         if(level == 0):
-            output += " [INFO]  "
+            output += " [  OK  ] "
         elif(level == 1):
-            output += " [WARN]  "
+            output += " [ WARN ] "
         elif(level == 2):
-            output += " [ERROR] "
+            output += " [ CAUT ] "
         else:
-            output += " [FATAL] "
+            output += " [[ ERROR ]] "
         output += LOG_PREFIX + " "
         output += data
         if(LOG_TO_FILE):
@@ -441,12 +440,12 @@ class digitalReceiver:
 
     # Convert bits to bytes
     def __getBytesFromBits(self, bData: str) -> bytes:
-        intData = []
-        i = 0
-        while(i < len(bData)):
-            intData.append(int(bData[(i):(i+8)], 2))
-            i += 8
-        return bytes(intData)
+        i = []
+        n = 0
+        while(n < len(bData)):
+            i.append(int(bData[(n):(n+8)], 2))
+            n += 8
+        return bytes(i)
     
     # Run error correction and remove all parity bits from bits data
     def __getSourceDataFromECC(self, data: str) -> str:

@@ -1,6 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
-from orion import FormatUtils
+from adrcfs import FormatUtils
 # SMTP login information
 SMTP_ADDR = ""
 SMTP_SERVER = "smtp.office365.com"
@@ -38,7 +38,7 @@ while(True):
     while(True):
         print("Enter address to page (xxx.xxx.xxx.xxx):")
         addr = input(">")
-        if(FormatUtils.isValidOctets(addr)):
+        if(FormatUtils.isValidAddress(addr)):
             break
         else:
             print("Address " + addr + " is invalid.")
