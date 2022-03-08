@@ -8,42 +8,33 @@ from time import sleep
 from adrcfs import NetworkInterface, FormatUtils
 import os
 
-# IMAP login information
-IMAP_ADDR = ""
-IMAP_SERVER = "outlook.office365.com"
-IMAP_PORT = 993
-IMAP_PASSWORD = ""
+################################################################ USER CONSTANTS (Read from configuration file)
+with open("mercury.conf","r") as f:
+    configLines = []
+    for i in f.readlines():
+        if(i[0] != "#" and i[0] != " "):
+            configLines.append(i.split("=")[1].strip("\n"))
 
-# SMTP login information
-SMTP_ADDR = ""
-SMTP_SERVER = "smtp.office365.com"
-SMTP_PORT = 587
-SMTP_PASSWORD = ""
+IMAP_ADDR = configLines[0]
+IMAP_SERVER = configLines[1]
+IMAP_PORT = int(configLines[2])
+IMAP_PASSWORD = configLines[3]
+SMTP_ADDR = configLines[4]
+SMTP_SERVER = configLines[5]
+SMTP_PORT = int(configLines[6])
+SMTP_PASSWORD = configLines[7]
+SOURCE_ADDRESS = configLines[8]
+PAGE_COOLDOWN = int(configLines[9])
+MAX_PAGE_LENGTH = int(configLines[10])
+OUTGOING_MESSAGE_SUBJECT = configLines[11]
+OUTGOING_MESSAGE_HEADER = configLines[12] + "\n"
 
-# Packet radio address of paging server ("xxx.xxx.xxx.xxx", default "255.255.255.255")
-SOURCE_ADDRESS = "255.255.255.255"
-
-# Whitelist for incoming pages
-IMAP_WHITELIST = [""]
-
-# Page cooldown in seconds (Default 10, going lower may overheat your radio)
-PAGE_COOLDOWN = 10
-
-# Maximum page body length in bytes (Default 1024, going higher may overheat your radio)
-MAX_PAGE_LENGTH = 1024
-
-# Subject for outgoing messages
-OUTGOING_MESSAGE_SUBJECT = "Mercury Pager - Page Sent."
-
-# Header for outgoing messages
-OUTGOING_MESSAGE_HEADER = "Thank you for using Mercury Pager.\n" # Requires newline unless empty.
-
-####################################################################### LOGGING
-def getDateAndTime(): # Long date and time
+################################################################################ LOGGING
+def getDateAndTime(): # Long date and time for logging
         now = datetime.now()
         return now.strftime('%Y-%m-%d %H:%M:%S')
 
-# Logging level (0: INFO (recommended), 1: WARN, 2: ERROR, 3: FATAL, 4: NONE)
+# Logging level (0: INFO, 1: WARN (recommended), 2: ERROR, 3: NONE)
 LOG_LEVEL = 0
 #
 # Should the log output to the console?
@@ -53,10 +44,10 @@ LOG_TO_CONSOLE = True
 LOG_TO_FILE = False
 #
 # Where to generate logfile if need be
-LOG_PATH = "mercury.log"
+LOG_PATH = "adr-cfs.log"
 #
 # How the log identifies which module is logging.
-LOG_PREFIX = "(Mercury)"
+LOG_PREFIX = "(ADR-CFS)"
 
 # Initialize log file if needed
 if(LOG_TO_FILE):
@@ -74,10 +65,8 @@ def log(level: int, data: str):
             output += " [  OK  ] "
         elif(level == 1):
             output += " [ WARN ] "
-        elif(level == 2):
-            output += " [ CAUT ] "
         else:
-            output += " [[ ERROR ]] "
+            output += " [ ERR. ] "
         output += LOG_PREFIX + " "
         output += data
         if(LOG_TO_FILE):
@@ -86,6 +75,7 @@ def log(level: int, data: str):
         if(LOG_TO_CONSOLE):
             print(output)
 
+################################################################################ IMAP Tools
 class IMAP:
     def __init__(self, useremail, password, server, port):
         self.useremail = useremail
@@ -143,6 +133,7 @@ class IMAP:
         lm = self.getMessageCount()
         return self.read(lm, remove)
 
+################################################################################ SMTP Tools
 class SMTP:
     def __init__(self, useremail, password, server, port):
         self.useremail = useremail
@@ -164,7 +155,7 @@ class SMTP:
 
         self.smtp.quit()
 
-# Main loop
+################################################################################ Main Loop
 log(0, "Welcome to Mercury Pager Server")
 im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
@@ -174,22 +165,21 @@ while(True):
         if(im.getMessageCount() > 0):
             # Fetch mail
             From, Subject, Body = im.readLast(remove=True)
-            if(From in IMAP_WHITELIST):
-                log(0, "Message received from " + From + ".")
-                # Assemble packet
-                if(FormatUtils.isValidAddress(Subject)):
-                    dest = Subject
-                else:
-                    dest = "255.255.255.255"
-                sp = ni.makePacket(FormatUtils.trimBytes(Body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
-                # Send packet
-                ni.sendPacket(sp)
-                # Notify sender that packet was sent
-                log(0, "Sent page:\n" + Body + "\nto address " + sp.getDest() + ".")
-                if(From != IMAP_ADDR and From != SMTP_ADDR): # don't send messages to self
-                    sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.getDest() + " was successfully sent on " + getDateAndTime() + "."))
-                # Cool down
-                sleep(PAGE_COOLDOWN)
+            log(0, "Message received from " + From + ".")
+            # Assemble packet
+            if(FormatUtils.isValidAddress(Subject)):
+                dest = Subject
+            else:
+                dest = "255.255.255.255"
+            sp = ni.makePacket(FormatUtils.trimBytes(Body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
+            # Send packet
+            ni.sendPacket(sp)
+            # Notify sender that packet was sent
+            log(0, "Sent page:\n" + Body + "\nto address " + sp.getDest() + ".")
+            if(From != IMAP_ADDR and From != SMTP_ADDR): # don't send messages to self
+                sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.getDest() + " was successfully sent on " + getDateAndTime() + "."))
+            # Cool down
+            sleep(PAGE_COOLDOWN)
 
     except Exception as e:
         log(2, "Unexpected error in fetch-process-transmit loop: " + str(e) + ". Restarting after cooldown.")
