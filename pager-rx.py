@@ -1,59 +1,62 @@
 from adrcfs import NetworkInterface
 
 print("Mercury Pager Receiver")
-print("Homepage: https://radio.jvmeifert.com/mercurypager")
-print("Updates: https://github.com/jvmeifert/mercurypager/releases")
+print("Homepage: https://github.com/jmeifert/mercurypager")
+print("Updates: https://github.com/jmeifert/mercurypager/releases")
 print("Enter address to listen on (xxx.xxx.xxx.xxx). BLANK:ANY")
-source = input(":")
-if(source == ""):
+this_addr = input(":")
+if(this_addr == ""):
     filterListener = False
     ni = NetworkInterface("255.255.255.255", 65535)
 else:
     filterListener = True
-    ni = NetworkInterface(source, 65535)
+    print("Enter port to listen on (0-65535)")
+    this_port = input(":")
+    ni = NetworkInterface(this_addr, this_port)
 
 while(True):
-    print("Listening for page...\n")
+    print("Listening for pages...\n")
     if(filterListener):
-        p = ni.listenForPacket()
+        p = ni.listen_for_packet()
     else:
-        p = ni.listenForAnyPacket()
+        p = ni.listen_for_any_packet()
     
     # get attributes
-    source = p.getSource()
-    dest = p.getDest()
-    sourcePort = p.getSourcePort()
-    destPort = p.getDestPort()
-    age = p.getAge()
-    flag = p.getFlag()
-    length = p.getLength()
-    data = p.getData()
-    integrity = round(ni.getIntegrity() * 100, 4)
+    p_source = p.get_source()
+    p_dest = p.get_dest()
+    p_source_port = p.get_source_port()
+    p_dest_port = p.get_dest_port()
+    p_age = p.get_age()
+    p_flag = p.get_flag()
+    p_length = p.get_length()
+    p_data = p.get_data()
+    p_integrity = round(ni.get_integrity() * 100, 4)
 
     # display attributes
-    print("\nPage received (Integrity: " + str(integrity) + "%)")
-    if(integrity < 50):
+    print("\nPage received (Integrity: " + str(p_integrity) + "%)")
+    if(p_integrity < 70):
         print("WARNING: Low page integrity. Uncorrectable errors may be present.")
-    print(source + ":" + str(sourcePort) + " -> " + dest + ":" + str(destPort) + " (A: " + str(age) + ", F: " + flag + ", L: " + str(length) + "):")
+    print(str(p_source) + ":" + str(p_source_port) + " -> " + str(p_dest) + ":" + str(p_dest_port)
+     + " (A: " + str(p_age) + ", F: " + p_flag + ", L: " + str(p_length) + "):")
 
     # handle contents
-    if(p.isGroupFlag()):
+    if(p.is_group_flag()):
         print("Page is a group. Showing grouped pages:")
-        gp = p.getGroup()
+        gp = p.get_grouped_packets()
         # display each packet in group
         for i in gp:
-            iSource = i.getSource()
-            iDest = i.getDest()
-            iSourcePort = i.getSourcePort()
-            iDestPort = i.getDestPort()
-            iAge = i.getAge()
-            iFlag = i.getFlag()
-            iLength = i.getLength()
-            iData = i.getData()
-            print(iSource + ":" + str(iSourcePort) + " -> " + iDest + ":" + str(iDestPort) + " (A: " + str(iAge) + ", F: " + iFlag + ", L: " + str(iLength) + "):")
-            print(iData.decode("ascii", "ignore"))
+            i_source = i.get_source()
+            i_dest = i.get_dest()
+            i_source_port = i.get_source_port()
+            i_dest_port = i.get_dest_port()
+            i_age = i.get_age()
+            i_flag = i.get_flag()
+            i_length = i.get_length()
+            i_data = i.get_data()
+            print(i_source + ":" + str(i_source_port) + " -> " + i_dest + ":" + str(i_dest_port) + " (A: " + str(i_age) + ", F: " + i_flag + ", L: " + str(i_length) + "):")
+            print(i_data.decode("ascii", "ignore"))
     else:
         # if not a group print the packet's data
-        print(data.decode("ascii", "ignore"))
+        print(p_data.decode("ascii", "ignore"))
     
     print("Done. (CTRL-C to exit)")

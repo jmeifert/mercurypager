@@ -34,11 +34,13 @@ class SMTP:
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 
 print("Mercury Pager Transmitter")
+print("Homepage: https://github.com/jmeifert/mercurypager")
+print("Updates: https://github.com/jmeifert/mercurypager/releases")
 while(True):
     while(True):
         print("Enter address to page (xxx.xxx.xxx.xxx):")
         addr = input(">")
-        if(FormatUtils.isValidAddress(addr)):
+        if(FormatUtils.is_valid_address(addr)):
             break
         else:
             print("Address " + addr + " is invalid.")

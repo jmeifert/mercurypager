@@ -10,27 +10,27 @@ import os
 
 ################################################################ USER CONSTANTS (Read from configuration file)
 with open("mercury.conf","r") as f:
-    configLines = []
+    config_lines = []
     for i in f.readlines():
         if(i[0] != "#" and i[0] != " "):
-            configLines.append(i.split("=")[1].strip("\n"))
+            config_lines.append(i.split("=")[1].strip("\n"))
 
-IMAP_ADDR = configLines[0]
-IMAP_SERVER = configLines[1]
-IMAP_PORT = int(configLines[2])
-IMAP_PASSWORD = configLines[3]
-SMTP_ADDR = configLines[4]
-SMTP_SERVER = configLines[5]
-SMTP_PORT = int(configLines[6])
-SMTP_PASSWORD = configLines[7]
-SOURCE_ADDRESS = configLines[8]
-PAGE_COOLDOWN = int(configLines[9])
-MAX_PAGE_LENGTH = int(configLines[10])
-OUTGOING_MESSAGE_SUBJECT = configLines[11]
-OUTGOING_MESSAGE_HEADER = configLines[12] + "\n"
+IMAP_ADDR = config_lines[0]
+IMAP_SERVER = config_lines[1]
+IMAP_PORT = int(config_lines[2])
+IMAP_PASSWORD = config_lines[3]
+SMTP_ADDR = config_lines[4]
+SMTP_SERVER = config_lines[5]
+SMTP_PORT = int(config_lines[6])
+SMTP_PASSWORD = config_lines[7]
+SOURCE_ADDRESS = config_lines[8]
+PAGE_COOLDOWN = int(config_lines[9])
+MAX_PAGE_LENGTH = int(config_lines[10])
+OUTGOING_MESSAGE_SUBJECT = config_lines[11]
+OUTGOING_MESSAGE_HEADER = config_lines[12] + "\n"
 
 ################################################################################ LOGGING
-def getDateAndTime(): # Long date and time for logging
+def get_date_and_time(): # Long date and time for logging
         now = datetime.now()
         return now.strftime('%Y-%m-%d %H:%M:%S')
 
@@ -56,11 +56,11 @@ if(LOG_TO_FILE):
     except:
         pass
     with open(LOG_PATH, "w") as f:
-        f.write(getDateAndTime() + " [  OK  ] " + LOG_PREFIX + " Logging initialized.\n")
+        f.write(get_date_and_time() + " [  OK  ] " + LOG_PREFIX + " Logging initialized.\n")
 
 def log(level: int, data: str):
     if(level >= LOG_LEVEL):
-        output = getDateAndTime()
+        output = get_date_and_time()
         if(level == 0):
             output += " [  OK  ] "
         elif(level == 1):
@@ -103,23 +103,23 @@ class IMAP:
         for response in msg:
             if isinstance(response, tuple):
                 msg = email.message_from_bytes(response[1])
-                Subject, encoding = decode_header(msg["Subject"])[0]
-                if isinstance(Subject, bytes):
-                    Subject = Subject.decode(encoding)
+                message_subject, encoding = decode_header(msg["Subject"])[0]
+                if isinstance(message_subject, bytes):
+                    message_subject = message_subject.decode(encoding)
                 
-                From, encoding = decode_header(msg.get("From"))[0]
-                if isinstance(From, bytes):
-                    From = From.decode(encoding)
-                if("<" in From):
-                    From = From.split("<")[1].strip(">")
+                message_from, encoding = decode_header(msg.get("From"))[0]
+                if isinstance(message_from, bytes):
+                    message_from = message_from.decode(encoding)
+                if("<" in message_from):
+                    message_from = message_from.split("<")[1].strip(">")
             if msg.is_multipart():
                 for part in msg.walk():       
                     if part.get_content_type() == "text/plain":
-                        Body = part.get_payload(decode=True).decode()
+                        message_body = part.get_payload(decode=True).decode()
             
             else:
                 if msg.get_content_type() == "text/plain":
-                    Body = msg.get_payload(decode=True).decode("ascii", "ignore")
+                    message_body = msg.get_payload(decode=True).decode("ascii", "ignore")
         if(remove):
             self.imap.store(str(index), '+FLAGS', '\\Deleted')
             self.imap.expunge()
@@ -127,9 +127,9 @@ class IMAP:
         # Close connection
         self.imap.close()
         self.imap.logout()
-        return From, Subject, Body
+        return message_from, message_subject, message_body
     
-    def readLast(self, remove=False):
+    def read_last(self, remove=False):
         lm = self.getMessageCount()
         return self.read(lm, remove)
 
@@ -156,7 +156,9 @@ class SMTP:
         self.smtp.quit()
 
 ################################################################################ Main Loop
-log(0, "Welcome to Mercury Pager Server")
+print("Welcome to Mercury Pager Server")
+print("Homepage: https://github.com/jmeifert/mercurypager")
+print("Updates: https://github.com/jmeifert/mercurypager/releases")
 im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 ni = NetworkInterface(SOURCE_ADDRESS, 65535)
@@ -164,20 +166,20 @@ while(True):
     try:
         if(im.getMessageCount() > 0):
             # Fetch mail
-            From, Subject, Body = im.readLast(remove=True)
+            From, Subject, Body = im.read_last(remove=True)
             log(0, "Message received from " + From + ".")
             # Assemble packet
-            if(FormatUtils.isValidAddress(Subject)):
+            if(FormatUtils.is_valid_address(Subject)):
                 dest = Subject
             else:
                 dest = "255.255.255.255"
-            sp = ni.makePacket(FormatUtils.trimBytes(Body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
+            sp = ni.make_packet(FormatUtils.trim_bytes(Body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
             # Send packet
-            ni.sendPacket(sp)
+            ni.send_packet(sp)
             # Notify sender that packet was sent
-            log(0, "Sent page:\n" + Body + "\nto address " + sp.getDest() + ".")
+            log(0, "Sent page:\n" + Body + "\nto address " + sp.get_dest() + ".")
             if(From != IMAP_ADDR and From != SMTP_ADDR): # don't send messages to self
-                sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.getDest() + " was successfully sent on " + getDateAndTime() + "."))
+                sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.get_dest() + " was successfully sent on " + get_date_and_time() + "."))
             # Cool down
             sleep(PAGE_COOLDOWN)
 
