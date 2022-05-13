@@ -48,46 +48,76 @@ IDEAL_WAVES_DIR = "data/ideal_waves/"
 
 ################################################################################ DIGITAL MODULATION TYPES
 class DigitalModulationTypes:
+    def afsk300() -> str: # Audio Frequency-Shift Keying (300 baud)
+        return "afsk300"
     def afsk600() -> str: # Audio Frequency-Shift Keying (600 baud)
         return "afsk600"
     def afsk1200() -> str: # Audio Frequency-Shift Keying (1200 baud)
         return "afsk1200"
+    def afsk2400() -> str: # Audio Frequency-Shift Keying (2400 baud)
+        return "afsk2400"
+    def afsk6000() -> str: # Audio Frequency-Shift Keying (6000 baud)
+        return "afsk6000"
     def default() -> str: # Default (AFSK1200)
         return "afsk1200"
     
     # Unit time in samples
     def get_unit_time(digital_modulation_type: str) -> int:
-        if(digital_modulation_type == "afsk600"):
+        if(digital_modulation_type == "afsk300"):
+            return int(SAMPLE_RATE / 300)
+        elif(digital_modulation_type == "afsk600"):
             return int(SAMPLE_RATE / 600)
         elif(digital_modulation_type == "afsk1200"):
             return int(SAMPLE_RATE / 1200)
+        elif(digital_modulation_type == "afsk2400"):
+            return int(SAMPLE_RATE / 2400)
+        elif(digital_modulation_type == "afsk6000"):
+            return int(SAMPLE_RATE / 6000)
         else: # default
             return int(SAMPLE_RATE / 1200)
 
     # Training sequence oscillations for specified time
     def get_ts_oscillations(sequence_time: int, digital_modulation_type: str) -> int:
-        if(digital_modulation_type == "afsk600"):
+        if(digital_modulation_type == "afsk300"):
+            return int(300 * sequence_time / 2)
+        elif(digital_modulation_type == "afsk600"):
             return int(600 * sequence_time / 2)
         elif(digital_modulation_type == "afsk1200"):
             return int(1200 * sequence_time / 2)
+        elif(digital_modulation_type == "afsk2400"):
+            return int(2400 * sequence_time / 2)
+        elif(digital_modulation_type == "afsk6000"):
+            return int(6000 * sequence_time / 2)
         else: # default
             return int(1200 * sequence_time / 2)
     
     # Get the frequency of the space tone for a given type
     def get_space_tone(digital_modulation_type: str) -> int:
-        if(digital_modulation_type == "afsk600"):
+        if(digital_modulation_type == "afsk300"):
+            return 300
+        elif(digital_modulation_type == "afsk600"):
             return 600
         elif(digital_modulation_type == "afsk1200"):
             return 1200
+        elif(digital_modulation_type == "afsk2400"):
+            return 2400
+        elif(digital_modulation_type == "afsk6000"):
+            return 6000
         else: # default
             return 1200
 
     # Get the frequency of the mark tone for a given type
     def get_mark_tone(digital_modulation_type: str) -> int:
-        if(digital_modulation_type == "afsk600"):
+        if(digital_modulation_type == "afsk300"):
+            return 600
+        elif(digital_modulation_type == "afsk600"):
             return 1200
         elif(digital_modulation_type == "afsk1200"):
             return 2400
+        elif(digital_modulation_type == "afsk2400"):
+            return 4800
+        elif(digital_modulation_type == "afsk6000"):
+            return 12000
         else: # default
             return 2400
 
@@ -125,15 +155,15 @@ class IdealWaves: # Ideal waves for TX and RX
         return self.__load_raw_wav_data(IDEAL_WAVES_DIR + self.digital_modulation_type + "/1.wav")
     
     # Space tone as int array for RX
-    def get_rx_space(self) -> list: 
+    def get_rx_space(self) -> list(int): 
         return self.__load_wav_data(IDEAL_WAVES_DIR + self.digital_modulation_type + "/0.wav")
     
     # Mark tone as int array for RX
-    def get_rx_mark(self) -> list: 
+    def get_rx_mark(self) -> list(int): 
         return self.__load_wav_data(IDEAL_WAVES_DIR + self.digital_modulation_type + "/1.wav")
     
     # Ideal training sequence oscillation for RX clock recovery
-    def get_rx_training(self) -> list: 
+    def get_rx_training(self) -> list(int): 
         return self.get_rx_mark() + self.get_rx_space()
 
 ################################################################################ HAMMING ECC
@@ -259,7 +289,7 @@ class DigitalReceiver:
             return f.readframes(nframes)
     
     # From sine to square
-    def __amplify_chunk(self, chunk: list) -> list:
+    def __amplify_chunk(self, chunk: list(int)) -> list(int):
         amp_chunk = []
         for i in chunk:
             if(i > self.amp_deadzone):
@@ -310,22 +340,22 @@ class DigitalReceiver:
                 pa.terminate()
                 return b''.join(recorded_frames)
 
-    # Unsigned average deviation from array of ints
-    def __avg_deviation_array(self, chunk: list) -> int: 
+    # Unsigned average deviation from audio stored as ints
+    def __avg_deviation_array(self, chunk: list(int)) -> int: 
         frame_sum = 0
         for frame in chunk:
             frame_sum += abs(frame)
         return int(frame_sum / len(chunk))
 
     # Find the difference between an ideal wave and a received wave
-    def __compare_samples(self, ideal_sample: list, given_sample: list) -> int: 
+    def __compare_samples(self, ideal_sample: list(int), given_sample: list(int)) -> int: 
         differences = []
         for i in range(len(ideal_sample)):
             differences.append(abs(ideal_sample[i] - given_sample[i]))
         return int(sum(differences) / len(differences))
 
     # Recover the clock from a chunk of audio by scanning the training sequence
-    def __recover_clock_index(self, chunk: list) -> int:
+    def __recover_clock_index(self, chunk: list(int)) -> int:
         try:
             fit_chunk = self.__amplify_chunk(chunk[0:CLOCK_SCAN_WIDTH]) 
             fit_devs = []
@@ -341,7 +371,7 @@ class DigitalReceiver:
             return -1
 
     # Check if a chunk's value is 1 or 0 based on its similarity to ideal waves.
-    def __get_bit_value(self, chunk: list) -> str:
+    def __get_bit_value(self, chunk: list(int)) -> str:
         # Amplify received wave to approximate to a square wave
         decChunk = self.__amplify_chunk(chunk)
         # Compare to ideal square waves
@@ -353,51 +383,51 @@ class DigitalReceiver:
             return "0"
 
     # Get bits from wav data
-    def __get_bits_from_wav_data(self, wavFrames: bytes) -> str:
-            expFrames = []
-            binData = ""
-            frameIter = 0
+    def __get_bits_from_wav_data(self, frames: bytes) -> str:
+            exp_frames = []
+            bits = ""
+            frame_iter = 0
             # Unpack bytes data to array of amplitudes
-            while(frameIter < len(wavFrames) - 1): 
-                sFrame = wavFrames[frameIter:frameIter+2]
-                expFrames.append(struct.unpack("<h", sFrame)[0])
-                frameIter += 2
-            nFrames = len(expFrames)
+            while(frame_iter < len(frames) - 1): 
+                s_frame = frames[frame_iter:frame_iter+2]
+                exp_frames.append(struct.unpack("<h", s_frame)[0])
+                frame_iter += 2
+            nFrames = len(exp_frames)
 
             # Recover the clock
-            startSample = self.__recover_clock_index(expFrames) 
+            start_sample = self.__recover_clock_index(exp_frames) 
             
             # If no start sample could be found we can't decode
-            if(startSample == -1): 
+            if(start_sample == -1): 
                 return ""
             
             # Decode to bits (including training block, we'll trim it off later)
-            chunkIter = int(self.unit_time) + startSample 
-            while(chunkIter < nFrames - 1):
-                chunk = expFrames[int(chunkIter - self.unit_time):int(chunkIter)]
+            chunk_iter = int(self.unit_time) + start_sample 
+            while(chunk_iter < nFrames - 1):
+                chunk = exp_frames[int(chunk_iter - self.unit_time):int(chunk_iter)]
                 # End decode when no more data is being transmitted
                 if(self.__avg_deviation_array(chunk) < self.amp_end_threshold): 
                     break
-                binData += self.__get_bit_value(chunk)
-                chunkIter += self.unit_time
-            return binData
+                bits += self.__get_bit_value(chunk)
+                chunk_iter += self.unit_time
+            return bits
 
     # Trim the training block off of received bits
     def __trim_training_block(self, data: str) -> str:
-        trainingBits = 0
-        zeroStreak = 0
-        endTrainingIndex = 0
+        training_bits = 0
+        zero_count = 0
+        end_training_index = 0
         for i in range(len(data)-1):
             if(data[i] != data[i+1]):
-                trainingBits += 1
+                training_bits += 1
             if(data[i] == "0"):
-                zeroStreak += 1
-                if(zeroStreak > 2 and trainingBits > 16):
-                    endTrainingIndex = i + 1
+                zero_count += 1
+                if(zero_count > 2 and training_bits > 16):
+                    end_training_index = i + 1
                     break
             else:
-                zeroStreak = 0
-        return(data[endTrainingIndex::])
+                zero_count = 0
+        return(data[end_training_index::])
 
     # Convert bits to bytes
     def __get_bytes_from_bits(self, b_data: str) -> bytes:
