@@ -34,17 +34,17 @@ if(LOG_TO_FILE):
     except:
         pass
     with open(LOG_PATH, "w") as f:
-        f.write(get_date_and_time() + " [  OK  ] " + LOG_PREFIX + " Logging initialized.\n")
+        f.write(get_date_and_time() + " [INFO] " + LOG_PREFIX + " Logging initialized.\n")
 
 def log(level: int, data: str):
     if(level >= LOG_LEVEL):
         output = get_date_and_time()
         if(level == 0):
-            output += " [  OK  ] "
+            output += " [INFO] "
         elif(level == 1):
-            output += " [ WARN ] "
+            output += " [WARN] "
         else:
-            output += " [ ERR! ] "
+            output += " [ERR!] "
         output += LOG_PREFIX + " "
         output += data
         if(LOG_TO_FILE):

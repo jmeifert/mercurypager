@@ -1,8 +1,8 @@
 from adrcfs import NetworkInterface
 
-print("Mercury Pager Receiver")
-print("Homepage: https://github.com/jmeifert/mercurypager")
-print("Updates: https://github.com/jmeifert/mercurypager/releases")
+print("----- Mercury Pager Receiver -----")
+print("- Homepage: https://github.com/jmeifert/mercurypager")
+print("- Updates: https://github.com/jmeifert/mercurypager/releases")
 print("Enter address to listen on (xxx.xxx.xxx.xxx). BLANK:ANY")
 this_addr = input(":")
 if(this_addr == ""):
@@ -10,9 +10,7 @@ if(this_addr == ""):
     ni = NetworkInterface("255.255.255.255", 65535)
 else:
     filterListener = True
-    print("Enter port to listen on (0-65535)")
-    this_port = input(":")
-    ni = NetworkInterface(this_addr, this_port)
+    ni = NetworkInterface(this_addr, 65535)
 
 while(True):
     print("Listening for pages...\n")

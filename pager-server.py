@@ -44,10 +44,10 @@ LOG_TO_CONSOLE = True
 LOG_TO_FILE = False
 #
 # Where to generate logfile if need be
-LOG_PATH = "adr-cfs.log"
+LOG_PATH = "mercury.log"
 #
 # How the log identifies which module is logging.
-LOG_PREFIX = "(ADR-CFS)"
+LOG_PREFIX = "(Mercury)"
 
 # Initialize log file if needed
 if(LOG_TO_FILE):
@@ -56,17 +56,17 @@ if(LOG_TO_FILE):
     except:
         pass
     with open(LOG_PATH, "w") as f:
-        f.write(get_date_and_time() + " [  OK  ] " + LOG_PREFIX + " Logging initialized.\n")
+        f.write(get_date_and_time() + " [INFO] " + LOG_PREFIX + " Logging initialized.\n")
 
 def log(level: int, data: str):
     if(level >= LOG_LEVEL):
         output = get_date_and_time()
         if(level == 0):
-            output += " [  OK  ] "
+            output += " [INFO] "
         elif(level == 1):
-            output += " [ WARN ] "
+            output += " [WARN] "
         else:
-            output += " [ ERR! ] "
+            output += " [ERR!] "
         output += LOG_PREFIX + " "
         output += data
         if(LOG_TO_FILE):
@@ -156,33 +156,37 @@ class SMTP:
         self.smtp.quit()
 
 ################################################################################ Main Loop
-print("Welcome to Mercury Pager Server")
-print("Homepage: https://github.com/jmeifert/mercurypager")
-print("Updates: https://github.com/jmeifert/mercurypager/releases")
+log(0, "----- Mercury Pager Server -----")
+log(0, "- Homepage: https://github.com/jmeifert/mercurypager")
+log(0, "- Updates: https://github.com/jmeifert/mercurypager/releases")
 im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 ni = NetworkInterface(SOURCE_ADDRESS, 65535)
 while(True):
-    try:
-        if(im.getMessageCount() > 0):
-            # Fetch mail
-            From, Subject, Body = im.read_last(remove=True)
-            log(0, "Message received from " + From + ".")
-            # Assemble packet
-            if(FormatUtils.is_valid_address(Subject)):
-                dest = Subject
-            else:
-                dest = "255.255.255.255"
-            sp = ni.make_packet(FormatUtils.trim_bytes(Body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
-            # Send packet
-            ni.send_packet(sp)
-            # Notify sender that packet was sent
-            log(0, "Sent page:\n" + Body + "\nto address " + sp.get_dest() + ".")
-            if(From != IMAP_ADDR and From != SMTP_ADDR): # don't send messages to self
-                sm.send(From, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + Body + "\nto address " + sp.get_dest() + " was successfully sent on " + get_date_and_time() + "."))
-            # Cool down
-            sleep(PAGE_COOLDOWN)
-
-    except Exception as e:
-        log(2, "Unexpected error in fetch-process-transmit loop: " + str(e) + ". Restarting after cooldown.")
+    #try:
+    if(im.getMessageCount() > 0):
+        # Fetch mail
+        mail_from, mail_subject, mail_body = im.read_last(remove=True)
+        log(0, "Message received from " + mail_from + ".")
+        # Assemble packet
+        if(FormatUtils.is_valid_address(mail_subject)):
+            dest = mail_subject
+        else:
+            dest = '255.255.255.255'
+        page_body = mail_from + ": " + mail_body 
+        sp = ni.make_packet(FormatUtils.trim_bytes(page_body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
+        # Send packet
+        ni.send_packet(sp)
+        # Notify sender that packet was sent
+        log(0, "Sent page:\n" + mail_body + "\nto address " + sp.get_dest() + ".")
+        if(mail_from != IMAP_ADDR and mail_from != SMTP_ADDR): # don't send messages to self
+            sm.send(mail_from, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + mail_body + "\nto address " + sp.get_dest() + " was successfully sent on " + get_date_and_time() + "."))
+        # Cool down
         sleep(PAGE_COOLDOWN)
+        log(0, "Listening.")
+    else:
+        sleep(3) # mail check cooldown
+
+    #except Exception as e:
+    #    log(2, "Unexpected error: " + str(e) + ". Restarting after cooldown.")
+    #    sleep(PAGE_COOLDOWN)
