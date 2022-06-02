@@ -173,14 +173,14 @@ while(True):
             dest = mail_subject
         else:
             dest = '255.255.255.255'
-        page_body = mail_from + ": " + mail_body 
+        page_body = mail_from + ":\n" + mail_body 
         sp = ni.make_packet(FormatUtils.trim_bytes(page_body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
         # Send packet
         ni.send_packet(sp)
         # Notify sender that packet was sent
-        log(0, "Sent page:\n" + mail_body + "\nto address " + sp.get_dest() + ".")
+        log(0, "Sent page:\n" + page_body + "\nto address " + sp.get_dest() + ".")
         if(mail_from != IMAP_ADDR and mail_from != SMTP_ADDR): # don't send messages to self
-            sm.send(mail_from, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page:\n" + mail_body + "\nto address " + sp.get_dest() + " was successfully sent on " + get_date_and_time() + "."))
+            sm.send(mail_from, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page...\n" + page_body + "\n...to address " + sp.get_dest() + " was successfully sent on " + get_date_and_time() + "."))
         # Cool down
         sleep(PAGE_COOLDOWN)
         log(0, "Listening.")
