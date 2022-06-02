@@ -163,30 +163,30 @@ im = IMAP(IMAP_ADDR, IMAP_PASSWORD, IMAP_SERVER, IMAP_PORT)
 sm = SMTP(SMTP_ADDR, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT)
 ni = NetworkInterface(SOURCE_ADDRESS, 65535)
 while(True):
-    #try:
-    if(im.getMessageCount() > 0):
-        # Fetch mail
-        mail_from, mail_subject, mail_body = im.read_last(remove=True)
-        log(0, "Message received from " + mail_from + ".")
-        # Assemble packet
-        if(FormatUtils.is_valid_address(mail_subject)):
-            dest = mail_subject
+    try:
+        if(im.getMessageCount() > 0):
+            # Fetch mail
+            mail_from, mail_subject, mail_body = im.read_last(remove=True)
+            log(0, "Message received from " + mail_from + ".")
+            # Assemble packet
+            if(FormatUtils.is_valid_address(mail_subject)):
+                dest = mail_subject
+            else:
+                dest = '255.255.255.255'
+            page_body = mail_from + ":\n" + mail_body 
+            sp = ni.make_packet(FormatUtils.trim_bytes(page_body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
+            # Send packet
+            ni.send_packet(sp)
+            # Notify sender that packet was sent
+            log(0, "Sent page:\n" + page_body + "\nto address " + sp.get_dest() + ".")
+            if(mail_from != IMAP_ADDR and mail_from != SMTP_ADDR): # don't send messages to self
+                sm.send(mail_from, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page...\n" + page_body + "\n...to address " + sp.get_dest() + " was successfully sent on " + get_date_and_time() + "."))
+            # Cool down
+            sleep(PAGE_COOLDOWN)
+            log(0, "Listening.")
         else:
-            dest = '255.255.255.255'
-        page_body = mail_from + ":\n" + mail_body 
-        sp = ni.make_packet(FormatUtils.trim_bytes(page_body.encode("ascii", "ignore"), MAX_PAGE_LENGTH), dest, 65535)
-        # Send packet
-        ni.send_packet(sp)
-        # Notify sender that packet was sent
-        log(0, "Sent page:\n" + page_body + "\nto address " + sp.get_dest() + ".")
-        if(mail_from != IMAP_ADDR and mail_from != SMTP_ADDR): # don't send messages to self
-            sm.send(mail_from, OUTGOING_MESSAGE_SUBJECT, (OUTGOING_MESSAGE_HEADER + "The following page...\n" + page_body + "\n...to address " + sp.get_dest() + " was successfully sent on " + get_date_and_time() + "."))
-        # Cool down
-        sleep(PAGE_COOLDOWN)
-        log(0, "Listening.")
-    else:
-        sleep(3) # mail check cooldown
+            sleep(3) # mail check cooldown
 
-    #except Exception as e:
-    #    log(2, "Unexpected error: " + str(e) + ". Restarting after cooldown.")
-    #    sleep(PAGE_COOLDOWN)
+    except Exception as e:
+        log(2, "Unexpected error: " + str(e) + ". Restarting after cooldown.")
+        sleep(PAGE_COOLDOWN)
